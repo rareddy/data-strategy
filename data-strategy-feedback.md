@@ -13,11 +13,7 @@ industry currently solves these problems, and to ask, pillar by pillar, one ques
 > **Where can we integrate with something the customer (or the ecosystem) already has, instead of
 > building it ourselves?**
 
-The reason to ask it is not cost avoidance. It's fit. Every enterprise likely to buy RHOAI has
-already invested in a data stack - a warehouse or lake, a catalog, a secret manager, an ingestion
-tool, an identity provider - and has policies, audits, and teams attached to those investments. A
-strategy that composes with those investments lands on day one. A strategy that asks the customer
-to re-establish them inside OpenShift AI lands after a migration they may not agree to.
+The reason to ask it is not cost avoidance. It's fit. Every enterprise likely to buy RHOAI _may_ has already invested in a data stack - a warehouse or lake, a catalog, a secret manager, an ingestion tool, an identity provider - and has policies, audits, and teams attached to those investments. A strategy that composes with those investments lands on day one. A strategy that asks the customer to re-establish them inside OpenShift AI lands after a migration they may not agree to.
 
 The proposal's own framing already says this:
 
@@ -31,12 +27,11 @@ closing the gap between the tagline and the plan.
 ## The organizing question
 
 Red Hat's mandate has never been to supply the system of record; it's to run the customer's stack
-well, on their infrastructure, without lock-in. Most enterprises evaluating RHOAI will already have
-a data warehouse or lake (Snowflake, BigQuery, Redshift, Databricks, on-prem Postgres, object
+well, on their infrastructure, without lock-in. Most enterprises evaluating RHOAI will already have a data warehouse or lake (Snowflake, BigQuery, Redshift, Databricks, on-prem Postgres, object
 storage) and a catalog or governance tool (Atlan, Collibra, Alation, Purview, OpenMetadata), with
 access policies attached to both.
 
-Red Hat is one of those customers: Red Hat IT runs Atlan, Dataverse, and Snowflake. Where they just supply a MCP server for access. Is there a requirement to show whole data cataloge in Dataverse?
+Red Hat is one of those customers: Red Hat IT runs Atlan, Dataverse, and Snowflake. Where they just supply a MCP servers for access for Agents. 
 
 So the question I'd put at the top of the strategy **"what is the smallest thing we must own so that everything the customer already owns works inside OpenShift AI?"** Working through the pillars below, my answer is the connection, credential, and identity fabric - Pillar 1, currently the thinnest-staged pillar, and the one piece of this that no existing product delivers for us.
 
@@ -47,11 +42,8 @@ So the question I'd put at the top of the strategy **"what is the smallest thing
 **What the industry means by "catalog" is not what Iceberg means by it.** These are two different
 layers that happen to share a word, and the proposal treats them as adjacent options:
 
-- An **Iceberg REST Catalog** is table lifecycle and state management: where the table lives, which
-  bucket, current snapshot, schema, file format (Parquet/ORC/Avro), partitioning. It's an engine-
-  facing API.
-- A **data catalog** is a governance and discovery plane: who owns this asset, what does this column
-  mean, who may see it, where did it come from, is it PII.
+- An **Iceberg REST Catalog** is table lifecycle and state management: where the table lives, which  bucket, current snapshot, schema, file format (Parquet/ORC/Avro), partitioning. It's an query engine-facing API to support likes of Trino, DuckDB,PyIceberg
+- A **data catalog** is a governance and discovery plane: who owns this asset, what does this column mean, who may see it, where did it come from, is it PII.
 
 Iceberg's API surfaces almost none of the second list. Glossary, ownership, classification,
 column-level lineage, policy, and the discovery UI that makes any of it usable would all still have
@@ -59,21 +51,21 @@ to be built on top. Having worked on this class of system, that's a substantial 
 frontend program, and it puts us in the market as a late entrant against vendors who have compounded
 on discovery UX and connector breadth for years.
 
-**The industry norm here is integration, not replacement.** Catalog vendors compete on connector
+**The norm here is integration, not replacement.** Catalog vendors compete on connector
 count and on being the single governance plane; If we introduce
 a platform-resident catalog beside the one the customer actually governs with, we create two places
 to register assets, two places to grant access, two lineage stories, and a sync problem between
 them. The real need behind this pillar - "their catalog doesn't know about our features and vector
 stores" - is met by publishing RHOAI-native assets *into* their catalog and reading source and
-dataset definitions *from* it, not by standing up a competing one.
+dataset definitions *from* it, not by standing up a another one.
 
-If see that we need a cataloge solution on OpenShift AI, the proposal ranks UC OSS as POC primary with OpenMetadata as fallback; I'd propose invert that. OpenMetadata has 120+ connectors, semantic search, native MCP, and the category's fastest growth, while UC OSS is pre-v1.0
+If we *really* do see that we need a cataloge solution on OpenShift AI, the proposal ranks UC OSS as POC primary with OpenMetadata as fallback; I'd propose invert that. OpenMetadata has 120+ connectors, semantic search, native MCP, and the category's fastest growth, while UC OSS is pre-v1.0
 with 18/36 capabilities and no ABAC. From a short look at OpenMetadata it already covers lineage and
 data quality and is being positioned for agent access to data systems through its MCP tooling —
 which is precisely the surface Pillar 5 needs. Worth noting that OpenMetadata deliberately does
 *not* build on the Iceberg API, for the layering reason above. The Collate license question is a
 real gate, but it's a legal review rather than an engineering program, and worth running now instead
-of holding as a fallback condition. The GitHub repo indicates Apache-2.0 license.
+of holding as a fallback condition. The GitHub repo indicates Apache-2.0 license, so not sure the concern, but associating with community is going to be slow.
 
 Treat the customer's catalog as the system of record for governance,
 integrate with it in both directions, and keep any Iceberg REST catalog we run scoped to what it's
@@ -123,7 +115,7 @@ their system of record lives, rather than retained in a platform-owned store, so
 access rules apply to it uniformly. Platform-local storage then becomes a working and scratch tier
 with a lifecycle policy an implementation detail, not a product surface.
 
-**One question I'd like pinned down:** is the use of Spark and Ray Data scoped to training and
+**One question I'd like to ask:** is the use of Spark and Ray Data scoped to training and
 fine-tuning, or are agents also expected to submit tasks to them? The two readings might imply different
 architectures.
 
@@ -154,7 +146,7 @@ doesn't yet have a settled answer, so it's worth surveying the emerging agent au
 
 ## Pillar 1 — The integration layer nobody builds for us
 
-**Connection sharing is the actual product.** Define a connection once and have it available 
+**Connection sharing/delegation is the actual product.** Define a connection once and have it available 
 correctly scoped, with credentials the user never shares directly to a workbench, a pipeline, a Spark job, a Ray job, a Feast store, a tool, and an MCP server, filtered by that user's permissions on the
 underlying resource. The proposal has auto-mounting as a Phase 2 bullet; I'd make it the headline
 deliverable, and extend it so credentials can be **brokered outside the agent and per OpenShift
@@ -174,7 +166,7 @@ component, an MCP server catalog, and a per-protocol story none of which is a wa
 of which are on the critical path for agentic data access. It also implies breadth work we should
 plan for: different brokering paths for different catalogs and warehouses, and support for more than
 one vault. I'd pair this with MCP servers for the major catalogs and warehouses, so agents query the
-customer's real estate rather than a copy.
+customer's real data rather than a copy.
 
 **Movement engines are the customer's choice.** Customers may already ingest with Fivetran or
 Airbyte, with something like Portworx underneath for storage. Integrate with what they've chosen;
