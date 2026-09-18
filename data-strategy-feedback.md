@@ -59,13 +59,9 @@ them. The real need behind this pillar - "their catalog doesn't know about our f
 stores" - is met by publishing RHOAI-native assets *into* their catalog and reading source and
 dataset definitions *from* it, not by standing up a another one.
 
-If we *really* do see that we need a cataloge solution on OpenShift AI, the proposal ranks UC OSS as POC primary with OpenMetadata as fallback; I'd propose invert that. OpenMetadata has 120+ connectors, semantic search, native MCP, and the category's fastest growth, while UC OSS is pre-v1.0
-with 18/36 capabilities and no ABAC. From a short look at OpenMetadata it already covers lineage and
-data quality and is being positioned for agent access to data systems through its MCP tooling —
-which is precisely the surface Pillar 5 needs. Worth noting that OpenMetadata deliberately does
-*not* build on the Iceberg API, for the layering reason above. The Collate license question is a
-real gate, but it's a legal review rather than an engineering program, and worth running now instead
-of holding as a fallback condition. The GitHub repo indicates Apache-2.0 license, so not sure the concern, but associating with community is going to be slow.
+If we *really* do see that we need a catalog solution on OpenShift AI, the UC OSS primary ranking in
+the proposal stands. Worth noting that OpenMetadata deliberately does *not* build on the Iceberg
+API, for the layering reason above — that distinction applies equally to any catalog we evaluate.
 
 Treat the customer's catalog as the system of record for governance,
 integrate with it in both directions, and keep any Iceberg REST catalog we run scoped to what it's
